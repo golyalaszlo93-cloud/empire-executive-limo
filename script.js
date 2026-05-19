@@ -168,7 +168,7 @@ function openPayment(url, fallbackMessage) {
 }
 
 function currentCheckoutUrl() {
-  return config.dynamicCheckoutUrl || "";
+  return config.dynamicCheckoutUrl || config.checkoutApiUrl || "";
 }
 
 async function openCheckout() {
@@ -280,7 +280,7 @@ function setMapStatus(message) {
 function loadGoogleMaps() {
   const key = config.googleMapsApiKey;
   if (!key) {
-    initFallbackRouteTools();
+    setMapStatus("Google Maps is not active yet. Route pricing stays at $0 until Google calculates the trip.");
     return;
   }
   const script = document.createElement("script");
@@ -365,9 +365,10 @@ async function calculateFallbackRoute() {
       return;
     }
 
-    pricingState.durationMinutes = Math.ceil(route.duration / 60);
+    pricingState.durationMinutes = null;
     pricingState.distanceText = metersToMiles(route.distance);
-    setMapStatus("Route calculated. Google map preview is shown; final availability is confirmed by dispatch.");
+    pricingState.hasRoute = false;
+    setMapStatus("Map preview loaded. Pricing waits for traffic-aware Google route calculation.");
     updateEstimate();
   } catch {
     setMapStatus("Route calculation is temporarily unavailable. Dispatch can confirm the price.");

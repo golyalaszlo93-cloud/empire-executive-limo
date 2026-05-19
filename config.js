@@ -7,7 +7,7 @@ window.EMPIRE_LIMO_CONFIG = {
   hourlyRate: 150,
   minimumHours: 1,
   googleMapsApiKey: "AIzaSyC11ke8krbToLt2n9J0iYoW6BPNFnJdhHw",
-  stripeCheckoutUrl: "https://buy.stripe.com/fZu6oJ77NbWn9a12LZ5kk00",
+  stripeCheckoutUrl: "",
   checkoutApiUrl: "",
   dynamicCheckoutUrl: "",
   paypalCheckoutUrl: "",
