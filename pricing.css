@@ -1,0 +1,105 @@
+.booking-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.gratuity-group {
+  display: grid;
+  grid-template-columns: 1fr repeat(4, auto);
+  gap: 8px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid #d7ccba;
+  background: #f7f2e8;
+  color: #3b3b39;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.gratuity-group label {
+  display: inline-flex;
+  min-height: 36px;
+  gap: 6px;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px solid #d7ccba;
+  background: #fffdf8;
+  cursor: pointer;
+}
+
+.gratuity-group input {
+  width: auto;
+  min-height: auto;
+}
+
+.estimate-card {
+  display: grid;
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid #d7ccba;
+  background: #d7ccba;
+}
+
+.estimate-card div {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 12px 14px;
+  background: #fffdf8;
+}
+
+.estimate-card span {
+  color: #5c554a;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.estimate-card strong {
+  text-align: right;
+}
+
+.estimate-card .estimate-total {
+  background: #151515;
+  color: #fff;
+}
+
+.estimate-card .estimate-total span {
+  color: #d6b36a;
+}
+
+.route-map-wrap {
+  display: grid;
+  gap: 10px;
+}
+
+.route-map {
+  display: grid;
+  min-height: 280px;
+  place-items: center;
+  border: 1px solid #d7ccba;
+  background: #d9d4c9;
+  color: #5c554a;
+  overflow: hidden;
+}
+
+.route-map span {
+  padding: 18px;
+  text-align: center;
+  font-weight: 800;
+}
+
+.map-status {
+  margin: 0;
+  color: #5c554a;
+  font-size: 13px;
+}
+
+@media (max-width: 900px) {
+  .gratuity-group {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .gratuity-group span {
+    grid-column: 1 / -1;
+  }
+}

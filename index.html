@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://images.unsplash.com">
     <link rel="stylesheet" href="./styles.css">
     <link rel="stylesheet" href="./payment-brands.css">
+    <link rel="stylesheet" href="./pricing.css">
   </head>
   <body>
     <header class="site-header" aria-label="Primary navigation">
@@ -67,17 +68,37 @@
       <section class="booking-section" id="booking">
         <div class="booking-copy">
           <p class="eyebrow">Reserve</p><h2>Request a quote in under one minute.</h2>
-          <p>Send the core trip details now. Dispatch can confirm vehicle availability, final pricing, and payment method before the ride is locked.</p>
-          <ul><li>Airport, hourly, point-to-point, and event trips</li><li>Card, Apple Pay, Klarna, Link, Cash App Pay, and Amazon Pay through Stripe</li><li>Confirmation by text, call, or email</li></ul>
+          <p>Enter the trip details to estimate the route, billable time, and checkout amount before dispatch confirms the ride.</p>
+          <ul><li>$150 minimum for the first hour</li><li>Every started hour after that adds $150</li><li>Optional gratuity: 18%, 20%, or 22%</li></ul>
         </div>
-        <form class="booking-form" aria-label="Ride quote request">
-          <label>Trip type<select name="trip-type"><option>Airport transfer</option><option>Corporate / executive</option><option>Wedding or event</option><option>Hourly chauffeur</option><option>Point to point</option></select></label>
-          <div class="form-row"><label>Pickup<input name="pickup" placeholder="Address, airport, hotel" required></label><label>Drop-off<input name="dropoff" placeholder="Destination or hourly" required></label></div>
-          <div class="form-row"><label>Date<input type="date" name="date" required></label><label>Time<input type="time" name="time" required></label></div>
-          <div class="form-row"><label>Passengers<input type="number" name="passengers" min="1" max="50" value="2"></label><label>Vehicle<select name="vehicle"><option>Luxury SUV</option><option>Luxury Sedan</option><option>Party Bus</option><option>Executive Bus</option><option>Not sure yet</option></select></label></div>
-          <label>Contact<input name="contact" placeholder="Phone or email" required></label>
-          <button class="button primary full" type="submit">Request quote</button><p class="form-note">Quote requests open a prepared email to dispatch. CRM automation comes next.</p>
-        </form>
+        <div class="booking-panel">
+          <form class="booking-form" aria-label="Ride quote request">
+            <label>Trip type<select name="trip-type"><option>Airport transfer</option><option>Corporate / executive</option><option>Wedding or event</option><option>Hourly chauffeur</option><option>Point to point</option></select></label>
+            <div class="form-row"><label>Pickup<input id="pickup-input" name="pickup" placeholder="Address, airport, hotel" required></label><label>Drop-off<input id="dropoff-input" name="dropoff" placeholder="Destination" required></label></div>
+            <div class="form-row"><label>Date<input type="date" name="date" required></label><label>Time<input type="time" name="time" required></label></div>
+            <div class="form-row"><label>Passengers<input type="number" name="passengers" min="1" max="50" value="2"></label><label>Vehicle<select name="vehicle"><option>Luxury SUV</option><option>Luxury Sedan</option><option>Party Bus</option><option>Executive Bus</option><option>Not sure yet</option></select></label></div>
+            <label>Contact<input name="contact" placeholder="Phone or email" required></label>
+            <div class="gratuity-group" aria-label="Optional gratuity">
+              <span>Optional gratuity</span>
+              <label><input type="radio" name="gratuity" value="0" checked>No tip</label>
+              <label><input type="radio" name="gratuity" value="18">18%</label>
+              <label><input type="radio" name="gratuity" value="20">20%</label>
+              <label><input type="radio" name="gratuity" value="22">22%</label>
+            </div>
+            <div class="estimate-card" aria-live="polite">
+              <div><span>Route time</span><strong id="route-time">Enter pickup and drop-off</strong></div>
+              <div><span>Billable time</span><strong id="billable-time">1 hour minimum</strong></div>
+              <div><span>Ride price</span><strong id="ride-price">$150.00</strong></div>
+              <div><span>Gratuity</span><strong id="tip-price">$0.00</strong></div>
+              <div class="estimate-total"><span>Total due</span><strong id="total-price">$150.00</strong></div>
+            </div>
+            <button class="button primary full" type="submit">Request ride and payment link</button><p class="form-note">Route pricing is $150 minimum for the first hour. Every started hour is billed as an additional $150.</p>
+          </form>
+          <div class="route-map-wrap">
+            <div id="route-map" class="route-map" role="img" aria-label="Route map"><span>Google Maps route preview will appear here.</span></div>
+            <p id="map-status" class="map-status">Enter pickup and drop-off to calculate distance, route time, and price.</p>
+          </div>
+        </div>
       </section>
       <section class="section payments" id="payments">
         <div class="section-heading"><p class="eyebrow">Payment options</p><h2>Built for modern checkout.</h2></div>
