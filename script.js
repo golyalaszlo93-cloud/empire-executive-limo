@@ -81,9 +81,10 @@ alternatePayments.forEach((link) => {
     event.preventDefault();
     const provider = link.dataset.pay;
     const urls = {
+      stripe: config.stripeCheckoutUrl,
       paypal: config.paypalCheckoutUrl,
       venmo: config.venmoCheckoutUrl || config.paypalCheckoutUrl,
-      cashapp: config.cashAppPayUrl,
+      cashapp: config.cashAppPayUrl || config.stripeCheckoutUrl,
     };
     openPayment(urls[provider], link.textContent.trim() + " is not connected yet.");
   });
