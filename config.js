@@ -8,7 +8,7 @@ window.EMPIRE_LIMO_CONFIG = {
   minimumHours: 1,
   googleMapsApiKey: "AIzaSyC11ke8krbToLt2n9J0iYoW6BPNFnJdhHw",
   stripeCheckoutUrl: "",
-  checkoutApiUrl: "",
+  checkoutApiUrl: "https://empire-limo-checkout.golyalaszlo93.workers.dev/create-checkout",
   dynamicCheckoutUrl: "",
   paypalCheckoutUrl: "",
   venmoCheckoutUrl: "",
