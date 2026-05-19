@@ -1,4 +1,5 @@
 const bookingForm = document.querySelector(".booking-form");
+const leadForm = document.querySelector(".lead-form");
 const applePayButton = document.querySelector("#apple-pay-button");
 const cardPayButton = document.querySelector("#card-pay-button");
 const alternatePayments = document.querySelectorAll("[data-pay]");
@@ -41,6 +42,11 @@ const selectedPlaces = {
 bookingForm?.addEventListener("submit", (event) => {
   event.preventDefault();
   openCheckout();
+});
+
+leadForm?.addEventListener("submit", (event) => {
+  event.preventDefault();
+  submitLead();
 });
 
 bookingForm?.addEventListener("input", (event) => {
@@ -292,6 +298,35 @@ async function openCheckout() {
 
   const data = await response.json();
   openPayment(data.url, "Checkout could not be opened.");
+}
+
+async function submitLead() {
+  if (!config.leadApiUrl || !leadForm) {
+    alert("Dispatch inquiry is not live yet. Please call 323-470-1958.");
+    return;
+  }
+
+  const note = leadForm.querySelector(".lead-note");
+  const formData = new FormData(leadForm);
+  const payload = Object.fromEntries(["name", "contact", "tripType", "pickup", "dropoff", "date", "time", "passengers", "message"].map((key) => [key, formData.get(key) || ""]));
+  if (!payload.contact || (!payload.pickup && !payload.dropoff && !payload.message)) {
+    if (note) note.textContent = "Add a contact and at least one ride detail so dispatch can follow up.";
+    return;
+  }
+
+  if (note) note.textContent = "Sending inquiry...";
+  try {
+    const response = await fetch(config.leadApiUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) throw new Error("Lead failed");
+    if (note) note.textContent = "Inquiry sent. Dispatch will follow up shortly.";
+    leadForm.reset();
+  } catch {
+    if (note) note.textContent = "Inquiry could not be sent. Please call or text dispatch directly.";
+  }
 }
 
 function handlePaymentReturn() {

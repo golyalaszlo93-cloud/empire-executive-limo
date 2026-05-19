@@ -9,6 +9,7 @@ window.EMPIRE_LIMO_CONFIG = {
   googleMapsApiKey: "AIzaSyC11ke8krbToLt2n9J0iYoW6BPNFnJdhHw",
   stripeCheckoutUrl: "",
   checkoutApiUrl: "https://empire-limo-checkout.golyalaszlo93.workers.dev/create-checkout",
+  leadApiUrl: "https://empire-limo-checkout.golyalaszlo93.workers.dev/lead",
   dynamicCheckoutUrl: "",
   paypalCheckoutUrl: "",
   venmoCheckoutUrl: "",

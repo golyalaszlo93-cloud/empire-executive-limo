@@ -14,6 +14,9 @@
       .admin-filters { display: grid; grid-template-columns: 1fr auto; gap: 10px; margin-bottom: 18px; }
       .admin-filters label { display: inline-flex; min-height: 48px; align-items: center; gap: 8px; color: var(--muted); }
       .admin-filters input[type="checkbox"] { width: auto; min-height: auto; }
+      .admin-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+      .admin-tabs button { min-height: 42px; border: 1px solid var(--line); background: transparent; color: var(--text); }
+      .admin-tabs button.is-active { background: var(--gold); color: #15100a; }
       .booking-list { display: grid; gap: 12px; }
       .booking-card { display: grid; gap: 12px; padding: 16px; border: 1px solid var(--line); background: var(--panel); }
       .booking-card header { display: flex; justify-content: space-between; gap: 16px; align-items: start; }
@@ -40,7 +43,7 @@
     </header>
     <main class="admin-shell">
       <div class="admin-header">
-        <div><p class="eyebrow">Admin</p><h1>Paid Bookings</h1></div>
+        <div><p class="eyebrow">Admin</p><h1>Bookings & Leads</h1></div>
         <button class="button primary" id="refresh-bookings" type="button">Refresh</button>
       </div>
       <div class="admin-controls">
@@ -50,6 +53,10 @@
       <div class="admin-filters">
         <input id="booking-search" type="search" placeholder="Search date, customer, pickup, drop-off">
         <label><input id="show-tests" type="checkbox"> Show test bookings</label>
+      </div>
+      <div class="admin-tabs" role="tablist" aria-label="Admin lists">
+        <button class="is-active" type="button" data-view="bookings">Paid bookings</button>
+        <button type="button" data-view="leads">Open leads</button>
       </div>
       <p class="admin-note" id="admin-note">Enter the admin token to load paid bookings.</p>
       <section class="booking-list" id="booking-list" aria-live="polite"></section>
