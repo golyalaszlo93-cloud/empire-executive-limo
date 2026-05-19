@@ -10,6 +10,7 @@ window.EMPIRE_LIMO_CONFIG = {
   googleMapsApiKey: "",
   // Stripe-hosted checkout for the reservation deposit.
   stripeCheckoutUrl: "https://buy.stripe.com/fZu6oJ77NbWn9a12LZ5kk00",
+  checkoutApiUrl: "",
   dynamicCheckoutUrl: "",
   paypalCheckoutUrl: "",
   venmoCheckoutUrl: "",

@@ -151,26 +151,42 @@ function currentCheckoutUrl() {
   return config.dynamicCheckoutUrl || config.stripeCheckoutUrl;
 }
 
+async function openCheckout() {
+  if (!config.checkoutApiUrl) {
+    openPayment(currentCheckoutUrl(), "Dynamic checkout is not connected yet.");
+    return;
+  }
+
+  const request = buildBookingRequest();
+  const response = await fetch(config.checkoutApiUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    alert("Checkout could not be created. Please call dispatch to complete payment.");
+    return;
+  }
+
+  const data = await response.json();
+  openPayment(data.url, "Checkout could not be opened.");
+}
+
 function configurePaymentButtons() {
   applePayButton?.addEventListener("click", () => {
-    openPayment(
-      currentCheckoutUrl(),
-      "Stripe Checkout link is not connected yet."
-    );
+    openCheckout();
   });
 
   cardPayButton?.addEventListener("click", () => {
-    openPayment(
-      currentCheckoutUrl(),
-      "Stripe Checkout link is not connected yet."
-    );
+    openCheckout();
   });
 }
 
 alternatePayments.forEach((link) => {
   link.addEventListener("click", (event) => {
     event.preventDefault();
-    openPayment(currentCheckoutUrl(), link.textContent.trim() + " is not connected yet.");
+    openCheckout();
   });
 });
 
