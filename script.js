@@ -278,6 +278,11 @@ async function openCheckout() {
   }
 
   const request = buildBookingRequest();
+  if (!request.totalDue || request.totalDue < 150) {
+    alert("Enter the trip details first so the website can calculate the ride total.");
+    return;
+  }
+
   const response = await fetch(config.checkoutApiUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -291,6 +296,22 @@ async function openCheckout() {
 
   const data = await response.json();
   openPayment(data.url, "Checkout could not be opened.");
+}
+
+function handlePaymentReturn() {
+  if (!bookingForm) return;
+  const params = new URLSearchParams(window.location.search);
+  const status = params.get("payment");
+  const note = bookingForm.querySelector(".form-note");
+  if (!status || !note) return;
+
+  if (status === "success") {
+    note.textContent = "Payment received. Your ride request is logged and dispatch will confirm the final details shortly.";
+  }
+
+  if (status === "cancelled") {
+    note.textContent = "Payment was cancelled. Your ride details are still here so you can review and try checkout again.";
+  }
 }
 
 function configurePaymentButtons() {
@@ -476,6 +497,7 @@ updateEstimate();
 configurePaymentButtons();
 loadGoogleMaps();
 updateServiceMode();
+handlePaymentReturn();
 
 function initFallbackRouteTools() {
   const pickupInput = document.querySelector("#pickup-input");
