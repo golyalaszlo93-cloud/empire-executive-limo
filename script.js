@@ -5,6 +5,15 @@ const cardPayButton = document.querySelector("#card-pay-button");
 const alternatePayments = document.querySelectorAll("[data-pay]");
 const config = window.EMPIRE_LIMO_CONFIG || {};
 const BASE_ADDRESS = "1231 N Las Palmas Ave, Los Angeles, CA 90038";
+const SERVICE_STATE_CODES = new Set(["CA", "NV", "AR"]);
+const STATE_NAME_TO_CODE = {
+  california: "CA",
+  ca: "CA",
+  nevada: "NV",
+  nv: "NV",
+  arkansas: "AR",
+  ar: "AR",
+};
 const VEHICLE_CAPACITY = {
   "Luxury Sedan": 3,
   "Luxury SUV": 6,
@@ -34,6 +43,8 @@ let map;
 let directionsService;
 let directionsRenderer;
 let suggestionTimer;
+let mapLoadTimer;
+let fallbackRouteToolsInitialized = false;
 const selectedPlaces = {
   pickup: null,
   dropoff: null,
@@ -235,7 +246,7 @@ function updateServiceMode() {
   if (isHourly) {
     setMapStatus("Hourly chauffeur service is billed at $150 per hour per vehicle.");
   } else {
-    setMapStatus("Point-to-point pricing includes driver travel from Hollywood base to pickup.");
+    setMapStatus("Point-to-point pricing includes dispatch positioning. The map shows only pickup to drop-off.");
   }
   updateEstimate();
 }
@@ -369,6 +380,16 @@ function configureSocialLinks() {
   });
 }
 
+function configureSmsLinks() {
+  const smsNumber = config.smsHref || config.phoneHref;
+  if (!smsNumber) return;
+  const message = encodeURIComponent(config.smsMessage || "Hi Empire Executive Limo, I need help booking a ride.");
+  const href = "sms:" + smsNumber + "?&body=" + message;
+  document.querySelectorAll("#sms-link, [data-sms-link]").forEach((link) => {
+    link.href = href;
+  });
+}
+
 alternatePayments.forEach((link) => {
   link.addEventListener("click", (event) => {
     event.preventDefault();
@@ -377,6 +398,7 @@ alternatePayments.forEach((link) => {
 });
 
 window.initEmpireLimoMap = function initEmpireLimoMap() {
+  window.clearTimeout(mapLoadTimer);
   const mapElement = document.querySelector("#route-map");
   if (!mapElement || !window.google?.maps) return;
 
@@ -395,7 +417,7 @@ window.initEmpireLimoMap = function initEmpireLimoMap() {
   if (google.maps.places) {
     const autocompleteOptions = {
       componentRestrictions: { country: "us" },
-      fields: ["formatted_address", "geometry", "name", "place_id"],
+      fields: ["address_components", "formatted_address", "geometry", "name", "place_id"],
     };
     const pickupAutocomplete = new google.maps.places.Autocomplete(pickupInput, autocompleteOptions);
     const dropoffAutocomplete = new google.maps.places.Autocomplete(dropoffInput, autocompleteOptions);
@@ -414,7 +436,7 @@ window.initEmpireLimoMap = function initEmpireLimoMap() {
     input?.addEventListener("blur", calculateRoute);
   });
 
-  setMapStatus("Enter pickup and drop-off to calculate the route.");
+  setMapStatus("Enter pickup and drop-off in California, Nevada, or Arkansas to calculate the route.");
 };
 
 async function calculateRoute() {
@@ -441,17 +463,16 @@ async function calculateRoute() {
   };
 
   try {
-    const [baseToPickup, pickupToDropoff, displayRoute] = await Promise.all([
+    const [baseToPickup, pickupToDropoff] = await Promise.all([
       getDirections({ origin: BASE_ADDRESS, destination: pickupEndpoint, ...routeOptions }),
       getDirections({ origin: pickupEndpoint, destination: dropoffEndpoint, ...routeOptions }),
-      getDirections({
-        origin: BASE_ADDRESS,
-        destination: dropoffEndpoint,
-        travelMode: google.maps.TravelMode.DRIVING,
-        unitSystem: google.maps.UnitSystem.IMPERIAL,
-        waypoints: [{ location: pickupEndpoint, stopover: true }],
-      }),
     ]);
+
+    if (!isGoogleRouteInServiceArea(pickupToDropoff)) {
+      clearCalculatedRoute();
+      setMapStatus("Service-area limit: quotes are only calculated for California, Nevada, and Arkansas.");
+      return;
+    }
 
     const trafficLegs = [
       baseToPickup.routes?.[0]?.legs?.[0],
@@ -459,14 +480,14 @@ async function calculateRoute() {
     ].filter(Boolean);
     if (trafficLegs.length !== 2) throw new Error("Missing route leg");
 
-    directionsRenderer.setDirections(displayRoute);
+    directionsRenderer.setDirections(pickupToDropoff);
     const seconds = trafficLegs.reduce((sum, leg) => sum + (leg.duration_in_traffic?.value || leg.duration?.value || 0), 0);
-    const meters = trafficLegs.reduce((sum, leg) => sum + (leg.distance?.value || 0), 0);
+    const customerLeg = pickupToDropoff.routes?.[0]?.legs?.[0];
     const hasTraffic = trafficLegs.some((leg) => leg.duration_in_traffic);
     pricingState.durationMinutes = Math.ceil(seconds / 60);
-    pricingState.distanceText = metersToMiles(meters);
+    pricingState.distanceText = metersToMiles(customerLeg?.distance?.value || 0);
     pricingState.hasRoute = true;
-    setMapStatus(hasTraffic ? "Traffic-aware route includes Hollywood base to pickup, then pickup to drop-off." : "Route includes Hollywood base to pickup, then pickup to drop-off.");
+    setMapStatus(hasTraffic ? "Traffic-aware pricing calculated. Map shows pickup to drop-off only." : "Pricing calculated. Map shows pickup to drop-off only.");
     updateEstimate();
   } catch {
     pricingState.hasRoute = false;
@@ -497,6 +518,7 @@ function normalizeSelectedPlace(place, input) {
     inputValue: input.value.trim(),
     placeId: place.place_id,
     location: place.geometry?.location || null,
+    stateCode: getStateCodeFromAddressComponents(place.address_components),
   };
 }
 
@@ -525,27 +547,84 @@ function setMapStatus(message) {
   if (estimateNodes.mapStatus) estimateNodes.mapStatus.textContent = message;
 }
 
+function clearCalculatedRoute() {
+  pricingState.hasRoute = false;
+  pricingState.durationMinutes = null;
+  pricingState.distanceText = "";
+  if (directionsRenderer) directionsRenderer.set("directions", null);
+  const mapElement = document.querySelector("#route-map");
+  if (mapElement?.querySelector("iframe")) {
+    mapElement.innerHTML = "<span>Route preview is available for California, Nevada, and Arkansas trips only.</span>";
+  }
+  updateEstimate();
+}
+
+function isGoogleRouteInServiceArea(route) {
+  const leg = route?.routes?.[0]?.legs?.[0];
+  const pickupState = selectedPlaces.pickup?.stateCode || getStateCodeFromAddress(leg?.start_address || "");
+  const dropoffState = selectedPlaces.dropoff?.stateCode || getStateCodeFromAddress(leg?.end_address || "");
+  return SERVICE_STATE_CODES.has(pickupState) && SERVICE_STATE_CODES.has(dropoffState);
+}
+
+function isLocationInServiceArea(location) {
+  return SERVICE_STATE_CODES.has(location?.stateCode);
+}
+
+function getStateCodeFromAddressComponents(components = []) {
+  const state = components.find((component) => component.types?.includes("administrative_area_level_1"));
+  if (!state) return "";
+  return normalizeStateCode(state.short_name || state.long_name);
+}
+
+function getStateCodeFromAddress(address) {
+  const parts = String(address || "").split(",").map((part) => part.trim()).reverse();
+  for (const part of parts) {
+    const code = normalizeStateCode(part.split(/\s+/)[0]);
+    if (code) return code;
+  }
+  return "";
+}
+
+function normalizeStateCode(value) {
+  const key = String(value || "").trim().toLowerCase();
+  return STATE_NAME_TO_CODE[key] || "";
+}
+
 function loadGoogleMaps() {
   const key = config.googleMapsApiKey;
   if (!key) {
     setMapStatus("Google Maps is not active yet. Route pricing stays at $0 until Google calculates the trip.");
+    initFallbackRouteTools();
     return;
   }
+  window.gm_authFailure = function handleGoogleMapsAuthFailure() {
+    setMapStatus("Google Maps needs billing or domain approval. Showing route preview only.");
+    initFallbackRouteTools();
+  };
   const script = document.createElement("script");
   script.src = "https://maps.googleapis.com/maps/api/js?key=" + encodeURIComponent(key) + "&libraries=places&callback=initEmpireLimoMap";
   script.async = true;
   script.defer = true;
   document.head.appendChild(script);
+  mapLoadTimer = window.setTimeout(() => {
+    if (!window.google?.maps) {
+      setMapStatus("Google Maps did not load. Showing route preview only.");
+      initFallbackRouteTools();
+    }
+  }, 5000);
 }
 
 updateEstimate();
 configurePaymentButtons();
 configureSocialLinks();
+configureSmsLinks();
 loadGoogleMaps();
 updateServiceMode();
 handlePaymentReturn();
 
 function initFallbackRouteTools() {
+  if (fallbackRouteToolsInitialized) return;
+  fallbackRouteToolsInitialized = true;
   const pickupInput = document.querySelector("#pickup-input");
   const dropoffInput = document.querySelector("#dropoff-input");
   const pickupList = document.querySelector("#pickup-suggestions");
@@ -560,7 +639,7 @@ function initFallbackRouteTools() {
     input?.addEventListener("blur", calculateFallbackRoute);
   });
 
-  setMapStatus("Enter pickup and drop-off to preview the route and calculate the estimated time.");
+  setMapStatus("Enter pickup and drop-off in California, Nevada, or Arkansas to preview the route.");
 }
 
 function queueAddressSuggestions(query, list) {
@@ -597,8 +676,7 @@ async function calculateFallbackRoute() {
   const dropoff = dropoffInput?.value.trim();
   if (!pickup || !dropoff) return;
 
-  setMapStatus("Calculating route...");
-  showGoogleDirectionsEmbed(pickup, dropoff);
+  setMapStatus("Checking service area...");
 
   try {
     const [origin, destination] = await Promise.all([
@@ -610,6 +688,14 @@ async function calculateFallbackRoute() {
       return;
     }
 
+    if (!isLocationInServiceArea(origin) || !isLocationInServiceArea(destination)) {
+      clearCalculatedRoute();
+      setMapStatus("Service-area limit: quotes are only calculated for California, Nevada, and Arkansas.");
+      return;
+    }
+
+    setMapStatus("Calculating route...");
+    showGoogleDirectionsEmbed(pickup, dropoff);
     const route = await fetchOsrmRoute(origin, destination);
     if (!route) {
       setMapStatus("Route could not be calculated. Try a more specific pickup and drop-off.");
@@ -635,6 +721,7 @@ async function geocodeAddress(address) {
   return {
     lat: Number(results[0].lat),
     lon: Number(results[0].lon),
+    stateCode: normalizeStateCode(results[0].address?.state || results[0].address?.state_code || ""),
   };
 }
 

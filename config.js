@@ -2,6 +2,8 @@ window.EMPIRE_LIMO_CONFIG = {
   businessName: "Empire Executive Limo",
   phoneDisplay: "323-470-1958",
   phoneHref: "+13234701958",
+  smsHref: "+13234701958",
+  smsMessage: "Hi Empire Executive Limo, I need help booking a ride.",
   email: "bookings@empireexecutivelimo.com",
   website: "https://empireexecutivelimo.com",
   facebookUrl: "https://www.facebook.com/empireexecutivelimo",

@@ -10,9 +10,13 @@ Open index.html in a browser, or serve this folder with any static server.
 
 - Site business config lives in config.js.
 - Phone is set to 323-470-1958.
+- SMS/Text links are configured through smsHref and smsMessage in config.js.
 - Public booking email is set to bookings@empireexecutivelimo.com.
+- Facebook and Instagram links are configured through facebookUrl and instagramUrl in config.js.
 - Booking form opens a prepared email handoff and stores recent quote requests in browser local storage.
 - Payment buttons read live URLs from config.js.
+- Route pricing is limited to California, Nevada, and Arkansas.
+- Customer route maps show pickup to drop-off only; dispatch positioning is included internally in calculated pricing.
 - Full wiring status is tracked in ../../operations/business/transportation/limo-wiring-status.md.
 
 ## Payment Setup Needed Before Live Use
