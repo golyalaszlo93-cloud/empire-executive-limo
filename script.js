@@ -355,6 +355,20 @@ function configurePaymentButtons() {
   });
 }
 
+function configureSocialLinks() {
+  const links = [
+    { selector: "#facebook-link, [data-social='facebook']", url: config.facebookUrl },
+    { selector: "#instagram-link, [data-social='instagram']", url: config.instagramUrl },
+  ];
+  links.forEach((item) => {
+    if (!item.url) return;
+    document.querySelectorAll(item.selector).forEach((link) => {
+      link.href = item.url;
+      link.classList.remove("is-hidden");
+    });
+  });
+}
+
 alternatePayments.forEach((link) => {
   link.addEventListener("click", (event) => {
     event.preventDefault();
@@ -526,6 +540,7 @@ function loadGoogleMaps() {
 
 updateEstimate();
 configurePaymentButtons();
+configureSocialLinks();
 loadGoogleMaps();
 updateServiceMode();
 handlePaymentReturn();

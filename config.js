@@ -4,6 +4,8 @@ window.EMPIRE_LIMO_CONFIG = {
   phoneHref: "+13234701958",
   email: "bookings@empireexecutivelimo.com",
   website: "https://empireexecutivelimo.com",
+  facebookUrl: "",
+  instagramUrl: "",
   hourlyRate: 150,
   minimumHours: 1,
   googleMapsApiKey: "AIzaSyC11ke8krbToLt2n9J0iYoW6BPNFnJdhHw",
