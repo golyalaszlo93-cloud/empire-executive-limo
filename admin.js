@@ -1,9 +1,11 @@
 const API_BASE = "https://empire-limo-checkout.golyalaszlo93.workers.dev";
 const BOOKINGS_API = API_BASE + "/bookings";
 const LEADS_API = API_BASE + "/leads";
+const UPDATE_API = API_BASE + "/admin-update";
 const tokenInput = document.querySelector("#admin-token");
 const loadButton = document.querySelector("#load-bookings");
 const refreshButton = document.querySelector("#refresh-bookings");
+const exportButton = document.querySelector("#export-csv");
 const searchInput = document.querySelector("#booking-search");
 const showTestsInput = document.querySelector("#show-tests");
 const tabButtons = document.querySelectorAll("[data-view]");
@@ -19,6 +21,7 @@ if (savedToken) tokenInput.value = savedToken;
 
 loadButton.addEventListener("click", loadAdminData);
 refreshButton.addEventListener("click", loadAdminData);
+exportButton.addEventListener("click", exportActiveCsv);
 searchInput.addEventListener("input", applyFilters);
 showTestsInput.addEventListener("change", applyFilters);
 tabButtons.forEach((button) => {
@@ -30,6 +33,12 @@ tabButtons.forEach((button) => {
 });
 
 list.addEventListener("click", async (event) => {
+  const saveButton = event.target.closest("[data-save]");
+  if (saveButton) {
+    await saveAdminUpdate(saveButton);
+    return;
+  }
+
   const button = event.target.closest("[data-copy]");
   if (!button) return;
   const source = button.dataset.type === "lead" ? allLeads : allBookings;
@@ -39,6 +48,41 @@ list.addEventListener("click", async (event) => {
   button.textContent = "Copied";
   window.setTimeout(() => { button.textContent = button.dataset.type === "lead" ? "Copy lead details" : "Copy dispatch details"; }, 1400);
 });
+
+async function saveAdminUpdate(button) {
+  const token = tokenInput.value.trim();
+  const card = button.closest(".booking-card");
+  if (!token || !card) {
+    note.textContent = "Enter the admin token first.";
+    return;
+  }
+
+  const type = button.dataset.type;
+  const id = button.dataset.save;
+  const status = card.querySelector("[data-status]")?.value || "";
+  const adminNote = card.querySelector("[data-note]")?.value || "";
+  button.textContent = "Saving...";
+
+  try {
+    const response = await fetch(UPDATE_API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+      body: JSON.stringify({ type, id, status, note: adminNote }),
+    });
+    if (!response.ok) throw new Error("Could not save note");
+    const source = type === "lead" ? allLeads : allBookings;
+    const item = source.find((entry) => (entry.sessionId || entry.id) === id);
+    if (item) {
+      item.adminStatus = status;
+      item.adminNote = adminNote;
+    }
+    button.textContent = "Saved";
+    window.setTimeout(() => { button.textContent = "Save note"; }, 1400);
+  } catch (error) {
+    button.textContent = "Save note";
+    note.textContent = error.message;
+  }
+}
 
 async function loadAdminData() {
   const token = tokenInput.value.trim();
@@ -123,7 +167,8 @@ function renderBooking(booking) {
     bookingField("Billable", String(booking.billableHours || "n/a") + " hour(s), gratuity " + String(booking.gratuityPercent || "0") + "%"),
     bookingField("Paid", booking.paidAt || "n/a"),
     "</div>",
-    '<div class="booking-actions"><button class="button ghost" type="button" data-type="booking" data-copy="' + escapeHtml(booking.sessionId || "") + '">Copy dispatch details</button></div>',
+    renderAdminFields("booking", booking.sessionId, booking.adminStatus, booking.adminNote),
+    '<div class="booking-actions"><button class="button ghost" type="button" data-type="booking" data-copy="' + escapeHtml(booking.sessionId || "") + '">Copy dispatch details</button><button class="button ghost" type="button" data-type="booking" data-save="' + escapeHtml(booking.sessionId || "") + '">Save note</button></div>',
     "</article>",
   ].join("");
 }
@@ -144,8 +189,23 @@ function renderLead(lead) {
     bookingField("Received", lead.createdAt || "n/a"),
     "</div>",
     lead.message ? '<p class="form-note">' + escapeHtml(lead.message) + "</p>" : "",
-    '<div class="booking-actions"><button class="button ghost" type="button" data-type="lead" data-copy="' + escapeHtml(lead.id || "") + '">Copy lead details</button></div>',
+    renderAdminFields("lead", lead.id, lead.adminStatus || lead.status, lead.adminNote),
+    '<div class="booking-actions"><button class="button ghost" type="button" data-type="lead" data-copy="' + escapeHtml(lead.id || "") + '">Copy lead details</button><button class="button ghost" type="button" data-type="lead" data-save="' + escapeHtml(lead.id || "") + '">Save note</button></div>',
     "</article>",
+  ].join("");
+}
+
+function renderAdminFields(type, id, status, adminNote) {
+  const statuses = type === "lead"
+    ? ["open", "contacted", "quoted", "won", "lost", "nurture"]
+    : ["new", "confirmed", "dispatched", "completed", "refunded", "issue"];
+  return [
+    '<div class="admin-card-tools">',
+    '<label>Status<select data-status>',
+    statuses.map((option) => '<option value="' + escapeHtml(option) + '"' + (option === status ? " selected" : "") + ">" + escapeHtml(option) + "</option>").join(""),
+    '</select></label>',
+    '<label>Dispatch note<textarea data-note rows="3" placeholder="Internal note for follow-up, driver, refund, or dispatch details">' + escapeHtml(adminNote || "") + "</textarea></label>",
+    "</div>",
   ].join("");
 }
 
@@ -182,6 +242,39 @@ function formatLeadDetails(lead) {
     "Message: " + (lead.message || "n/a"),
     "Lead ID: " + (lead.id || "n/a"),
   ].join("\n");
+}
+
+function exportActiveCsv() {
+  const source = activeView === "leads" ? allLeads : allBookings;
+  const rows = activeView === "leads" ? leadCsvRows(source) : bookingCsvRows(source);
+  const csv = rows.map((row) => row.map(csvCell).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "empire-limo-" + activeView + "-" + new Date().toISOString().slice(0, 10) + ".csv";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function bookingCsvRows(bookings) {
+  return [
+    ["date", "time", "customer", "contact", "pickup", "dropoff", "vehicle", "total", "status", "note", "session"],
+    ...bookings.map((b) => [b.date, b.time, b.customerName || b.customerEmail, b.contact || b.customerEmail, b.pickup, b.dropoff, b.vehiclePlan || b.vehicle, b.total, b.adminStatus, b.adminNote, b.sessionId]),
+  ];
+}
+
+function leadCsvRows(leads) {
+  return [
+    ["created", "date", "time", "name", "contact", "trip", "pickup", "dropoff", "passengers", "status", "note", "message", "id"],
+    ...leads.map((l) => [l.createdAt, l.date, l.time, l.name, l.contact, l.tripType, l.pickup, l.dropoff, l.passengers, l.adminStatus || l.status, l.adminNote, l.message, l.id]),
+  ];
+}
+
+function csvCell(value) {
+  return '"' + String(value || "").replace(/"/g, '""') + '"';
 }
 
 function escapeHtml(value) {
