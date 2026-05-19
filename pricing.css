@@ -32,6 +32,10 @@
   min-height: auto;
 }
 
+.service-options.is-hidden {
+  display: none;
+}
+
 .estimate-card {
   display: grid;
   gap: 1px;
@@ -55,7 +59,9 @@
 }
 
 .estimate-card strong {
+  min-width: 0;
   text-align: right;
+  overflow-wrap: anywhere;
 }
 
 .estimate-card .estimate-total {

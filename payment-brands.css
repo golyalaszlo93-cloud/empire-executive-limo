@@ -4,11 +4,14 @@
 
 .payment-options .payment-brand {
   position: relative;
+  min-width: 0;
   min-height: 92px;
   padding: 16px;
   border-radius: 8px;
   overflow: hidden;
   line-height: 1;
+  text-align: center;
+  overflow-wrap: anywhere;
   transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
 }
 
@@ -25,8 +28,9 @@
   gap: 5px;
   background: #050505;
   color: #fff;
-  font-size: 24px;
+  font-size: clamp(18px, 4vw, 24px);
   letter-spacing: 0;
+  white-space: nowrap;
 }
 
 .brand-apple-text strong {
@@ -61,13 +65,13 @@
 .brand-klarna {
   background: #ffb3c7;
   color: #171717;
-  font-size: 26px;
+  font-size: clamp(20px, 4vw, 26px);
 }
 
 .brand-link {
   background: #00d66f;
   color: #062c18;
-  font-size: 30px;
+  font-size: clamp(22px, 5vw, 30px);
 }
 
 .brand-cashapp {
@@ -95,13 +99,13 @@
 }
 
 .brand-amazon-text span {
-  font-size: 24px;
+  font-size: clamp(18px, 4vw, 24px);
   font-weight: 800;
 }
 
 .brand-amazon-text strong {
   position: relative;
-  font-size: 20px;
+  font-size: clamp(16px, 3.6vw, 20px);
 }
 
 .brand-amazon-text strong:after {
@@ -116,7 +120,18 @@
 }
 
 @media (max-width: 900px) {
+  .payment-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .payment-options .payment-brand {
     min-height: 72px;
+    padding: 12px;
+  }
+}
+
+@media (max-width: 420px) {
+  .payment-options {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

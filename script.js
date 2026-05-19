@@ -3,6 +3,13 @@ const applePayButton = document.querySelector("#apple-pay-button");
 const cardPayButton = document.querySelector("#card-pay-button");
 const alternatePayments = document.querySelectorAll("[data-pay]");
 const config = window.EMPIRE_LIMO_CONFIG || {};
+const BASE_ADDRESS = "1231 N Las Palmas Ave, Los Angeles, CA 90038";
+const VEHICLE_CAPACITY = {
+  "Luxury Sedan": 3,
+  "Luxury SUV": 6,
+  "Party Bus": 12,
+  "Executive Bus": 12,
+};
 
 const pricingState = {
   durationMinutes: null,
@@ -14,6 +21,7 @@ const pricingState = {
 const estimateNodes = {
   routeTime: document.querySelector("#route-time"),
   billableTime: document.querySelector("#billable-time"),
+  vehiclePlan: document.querySelector("#vehicle-plan"),
   ridePrice: document.querySelector("#ride-price"),
   tipPrice: document.querySelector("#tip-price"),
   totalPrice: document.querySelector("#total-price"),
@@ -49,6 +57,11 @@ bookingForm?.addEventListener("input", (event) => {
   if (event.target.name === "pickup" || event.target.name === "dropoff") {
     selectedPlaces[event.target.name] = null;
     resetEstimate();
+    return;
+  }
+
+  if (["service-hours", "vehicle-count", "passengers"].includes(event.target.name)) {
+    updateEstimate();
   }
 });
 
@@ -59,7 +72,14 @@ bookingForm?.addEventListener("change", (event) => {
     return;
   }
 
-  if (event.target.name === "date" || event.target.name === "time") {
+  if (event.target.name === "trip-type") {
+    updateServiceMode();
+    calculateRoute();
+    return;
+  }
+
+  if (event.target.name === "date" || event.target.name === "time" || event.target.name === "vehicle" || event.target.name === "passengers" || event.target.name === "vehicle-count" || event.target.name === "service-hours") {
+    updateEstimate();
     if (pricingState.hasRoute) calculateRoute();
   }
 });
@@ -76,6 +96,9 @@ function buildBookingRequest() {
     time: formData.get("time") || "",
     passengers: formData.get("passengers") || "",
     vehicle: formData.get("vehicle") || "",
+    vehicleCount: estimate.vehicleCount,
+    vehiclePlan: estimate.vehiclePlan,
+    serviceHours: formData.get("service-hours") || "",
     contact: formData.get("contact") || "",
     routeMinutes: pricingState.durationMinutes,
     distance: pricingState.distanceText,
@@ -107,6 +130,9 @@ function buildBookingMailto(request) {
     "Time: " + request.time,
     "Passengers: " + request.passengers,
     "Vehicle: " + request.vehicle,
+    "Vehicle quantity: " + request.vehicleCount,
+    "Vehicle plan: " + request.vehiclePlan,
+    "Service hours: " + (request.serviceHours || "route based"),
     "Contact: " + request.contact,
     "Distance: " + (request.distance || "not calculated"),
     "Route time: " + (request.routeMinutes ? request.routeMinutes + " minutes" : "not calculated"),
@@ -123,29 +149,93 @@ function buildBookingMailto(request) {
 function calculateEstimate() {
   const hourlyRate = Number(config.hourlyRate || 150);
   const minimumHours = Number(config.minimumHours || 1);
+  const formData = new FormData(bookingForm);
+  const serviceMode = getServiceMode(formData);
+  const selectedVehicleCount = getVehicleCount(formData);
+  const vehicleCount = getBillableVehicleCount(formData, selectedVehicleCount);
+  const vehiclePlan = buildVehiclePlan(formData, selectedVehicleCount, vehicleCount);
+  if (serviceMode === "hourly") {
+    const hours = Math.max(0, Number(formData.get("service-hours") || 0));
+    if (!hours || !vehicleCount) return emptyEstimate(vehicleCount, vehiclePlan);
+    const billableHours = Math.ceil(hours);
+    const ridePrice = billableHours * hourlyRate * vehicleCount;
+    const tipAmount = Math.round(ridePrice * pricingState.tipPercent) / 100;
+    return { billableHours, ridePrice, tipAmount, totalDue: ridePrice + tipAmount, vehicleCount, vehiclePlan };
+  }
   if (!pricingState.hasRoute || !pricingState.durationMinutes) {
-    return { billableHours: 0, ridePrice: 0, tipAmount: 0, totalDue: 0 };
+    return emptyEstimate(vehicleCount, vehiclePlan);
   }
   const minutes = pricingState.durationMinutes;
   const billableHours = Math.max(minimumHours, Math.ceil(minutes / 60));
-  const ridePrice = billableHours * hourlyRate;
+  const ridePrice = billableHours * hourlyRate * vehicleCount;
   const tipAmount = Math.round(ridePrice * pricingState.tipPercent) / 100;
   const totalDue = ridePrice + tipAmount;
-  return { billableHours, ridePrice, tipAmount, totalDue };
+  return { billableHours, ridePrice, tipAmount, totalDue, vehicleCount, vehiclePlan };
+}
+
+function emptyEstimate(vehicleCount, vehiclePlan) {
+  return { billableHours: 0, ridePrice: 0, tipAmount: 0, totalDue: 0, vehicleCount, vehiclePlan };
 }
 
 function updateEstimate() {
   const estimate = calculateEstimate();
   if (estimateNodes.routeTime) {
-    estimateNodes.routeTime.textContent = pricingState.durationMinutes
-      ? formatDuration(pricingState.durationMinutes, pricingState.distanceText)
-      : "Enter pickup and drop-off";
+    estimateNodes.routeTime.textContent = getServiceMode() === "hourly"
+      ? "Hourly reservation"
+      : pricingState.durationMinutes
+        ? formatDuration(pricingState.durationMinutes, pricingState.distanceText)
+        : "Enter pickup and drop-off";
   }
   if (estimateNodes.billableTime) estimateNodes.billableTime.textContent = estimate.billableHours + (estimate.billableHours === 1 ? " hour" : " hours");
+  if (estimateNodes.vehiclePlan) estimateNodes.vehiclePlan.textContent = estimate.vehiclePlan;
   if (estimateNodes.ridePrice) estimateNodes.ridePrice.textContent = formatCurrency(estimate.ridePrice);
   if (estimateNodes.tipPrice) estimateNodes.tipPrice.textContent = formatCurrency(estimate.tipAmount);
   if (estimateNodes.totalPrice) estimateNodes.totalPrice.textContent = formatCurrency(estimate.totalDue);
   if (estimateNodes.paymentTotalLabel) estimateNodes.paymentTotalLabel.textContent = formatCurrency(estimate.totalDue);
+}
+
+function getServiceMode(formData = new FormData(bookingForm)) {
+  return String(formData.get("trip-type") || "").toLowerCase().includes("hourly") ? "hourly" : "route";
+}
+
+function getVehicleCount(formData = new FormData(bookingForm)) {
+  return Math.max(1, Math.ceil(Number(formData.get("vehicle-count") || 1)));
+}
+
+function getBillableVehicleCount(formData = new FormData(bookingForm), selectedVehicleCount = getVehicleCount(formData)) {
+  const vehicle = String(formData.get("vehicle") || "Luxury SUV");
+  const passengers = Math.max(1, Math.ceil(Number(formData.get("passengers") || 1)));
+  if (vehicle === "Not sure yet") {
+    if (passengers <= 6) return Math.max(1, selectedVehicleCount);
+    return Math.max(Math.ceil(passengers / 12), selectedVehicleCount);
+  }
+
+  const capacity = VEHICLE_CAPACITY[vehicle] || 1;
+  return Math.max(Math.ceil(passengers / capacity), selectedVehicleCount);
+}
+
+function buildVehiclePlan(formData = new FormData(bookingForm), selectedVehicleCount = getVehicleCount(formData), billableVehicleCount = getBillableVehicleCount(formData, selectedVehicleCount)) {
+  const vehicle = String(formData.get("vehicle") || "Luxury SUV");
+  const passengers = Math.max(1, Math.ceil(Number(formData.get("passengers") || 1)));
+  if (vehicle === "Not sure yet") {
+    if (passengers <= 3) return billableVehicleCount + " Luxury Sedan" + (billableVehicleCount === 1 ? "" : "s");
+    if (passengers <= 6) return billableVehicleCount + " Luxury SUV" + (billableVehicleCount === 1 ? "" : "s");
+    return billableVehicleCount + " Party Bus / Executive Bus";
+  }
+
+  const label = billableVehicleCount + " " + vehicle + (billableVehicleCount === 1 ? "" : "s");
+  return billableVehicleCount === selectedVehicleCount ? label : label + " for " + passengers + " passengers";
+}
+
+function updateServiceMode() {
+  const isHourly = getServiceMode() === "hourly";
+  document.querySelector(".service-options")?.classList.toggle("is-hidden", !isHourly);
+  if (isHourly) {
+    setMapStatus("Hourly chauffeur service is billed at $150 per hour per vehicle.");
+  } else {
+    setMapStatus("Point-to-point pricing includes driver travel from Hollywood base to pickup.");
+  }
+  updateEstimate();
 }
 
 function formatCurrency(value) {
@@ -261,39 +351,76 @@ window.initEmpireLimoMap = function initEmpireLimoMap() {
   setMapStatus("Enter pickup and drop-off to calculate the route.");
 };
 
-function calculateRoute() {
+async function calculateRoute() {
   const pickupInput = document.querySelector("#pickup-input");
   const dropoffInput = document.querySelector("#dropoff-input");
   const pickup = pickupInput?.value.trim();
   const dropoff = dropoffInput?.value.trim();
+  if (getServiceMode() === "hourly") {
+    updateEstimate();
+    return;
+  }
   if (!directionsService || !pickup || !dropoff) return;
 
   setMapStatus("Calculating route...");
-  directionsService.route(
-    {
-      origin: getRouteEndpoint("pickup", pickup),
-      destination: getRouteEndpoint("dropoff", dropoff),
-      travelMode: google.maps.TravelMode.DRIVING,
-      unitSystem: google.maps.UnitSystem.IMPERIAL,
-      drivingOptions: {
-        departureTime: getRequestedDepartureTime(),
-        trafficModel: google.maps.TrafficModel.BEST_GUESS,
-      },
+  const pickupEndpoint = getRouteEndpoint("pickup", pickup);
+  const dropoffEndpoint = getRouteEndpoint("dropoff", dropoff);
+  const routeOptions = {
+    travelMode: google.maps.TravelMode.DRIVING,
+    unitSystem: google.maps.UnitSystem.IMPERIAL,
+    drivingOptions: {
+      departureTime: getRequestedDepartureTime(),
+      trafficModel: google.maps.TrafficModel.BEST_GUESS,
     },
-    (result, status) => {
+  };
+
+  try {
+    const [baseToPickup, pickupToDropoff, displayRoute] = await Promise.all([
+      getDirections({ origin: BASE_ADDRESS, destination: pickupEndpoint, ...routeOptions }),
+      getDirections({ origin: pickupEndpoint, destination: dropoffEndpoint, ...routeOptions }),
+      getDirections({
+        origin: BASE_ADDRESS,
+        destination: dropoffEndpoint,
+        travelMode: google.maps.TravelMode.DRIVING,
+        unitSystem: google.maps.UnitSystem.IMPERIAL,
+        waypoints: [{ location: pickupEndpoint, stopover: true }],
+      }),
+    ]);
+
+    const trafficLegs = [
+      baseToPickup.routes?.[0]?.legs?.[0],
+      pickupToDropoff.routes?.[0]?.legs?.[0],
+    ].filter(Boolean);
+    if (trafficLegs.length !== 2) throw new Error("Missing route leg");
+
+    directionsRenderer.setDirections(displayRoute);
+    const seconds = trafficLegs.reduce((sum, leg) => sum + (leg.duration_in_traffic?.value || leg.duration?.value || 0), 0);
+    const meters = trafficLegs.reduce((sum, leg) => sum + (leg.distance?.value || 0), 0);
+    const hasTraffic = trafficLegs.some((leg) => leg.duration_in_traffic);
+    pricingState.durationMinutes = Math.ceil(seconds / 60);
+    pricingState.distanceText = metersToMiles(meters);
+    pricingState.hasRoute = true;
+    setMapStatus(hasTraffic ? "Traffic-aware route includes Hollywood base to pickup, then pickup to drop-off." : "Route includes Hollywood base to pickup, then pickup to drop-off.");
+    updateEstimate();
+  } catch {
+    pricingState.hasRoute = false;
+    pricingState.durationMinutes = null;
+    pricingState.distanceText = "";
+    updateEstimate();
+    setMapStatus("Route could not be calculated. Check pickup and drop-off addresses.");
+  }
+}
+
+function getDirections(request) {
+  return new Promise((resolve, reject) => {
+    directionsService.route(request, (result, status) => {
       if (status !== "OK" || !result?.routes?.[0]?.legs?.[0]) {
-        setMapStatus("Route could not be calculated. Check pickup and drop-off addresses.");
+        reject(new Error(status || "ROUTE_FAILED"));
         return;
       }
-      const leg = result.routes[0].legs[0];
-      directionsRenderer.setDirections(result);
-      pricingState.durationMinutes = Math.ceil((leg.duration_in_traffic?.value || leg.duration.value) / 60);
-      pricingState.distanceText = leg.distance?.text || "";
-      pricingState.hasRoute = true;
-      setMapStatus(leg.duration_in_traffic ? "Traffic-aware Google route calculated. Final availability is confirmed by dispatch." : "Google route calculated. Final availability is confirmed by dispatch.");
-      updateEstimate();
-    }
-  );
+      resolve(result);
+    });
+  });
 }
 
 function normalizeSelectedPlace(place, input) {
@@ -348,6 +475,7 @@ function loadGoogleMaps() {
 updateEstimate();
 configurePaymentButtons();
 loadGoogleMaps();
+updateServiceMode();
 
 function initFallbackRouteTools() {
   const pickupInput = document.querySelector("#pickup-input");

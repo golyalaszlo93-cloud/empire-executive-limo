@@ -73,10 +73,11 @@
         </div>
         <div class="booking-panel">
           <form class="booking-form" aria-label="Ride quote request">
-            <label>Trip type<select name="trip-type"><option>Airport transfer</option><option>Corporate / executive</option><option>Wedding or event</option><option>Hourly chauffeur</option><option>Point to point</option></select></label>
+            <label>Trip type<select name="trip-type" id="trip-type"><option>Airport transfer</option><option>Corporate / executive</option><option>Wedding or event</option><option>Hourly chauffeur</option><option>Point to point</option></select></label>
             <div class="form-row"><label>Pickup<input id="pickup-input" name="pickup" placeholder="Address, airport, hotel" list="pickup-suggestions" autocomplete="street-address" required><datalist id="pickup-suggestions"></datalist></label><label>Drop-off<input id="dropoff-input" name="dropoff" placeholder="Destination" list="dropoff-suggestions" autocomplete="street-address" required><datalist id="dropoff-suggestions"></datalist></label></div>
             <div class="form-row"><label>Date<input type="date" name="date" required></label><label>Time<input type="time" name="time" required></label></div>
             <div class="form-row"><label>Passengers<input type="number" name="passengers" min="1" max="50" value="2"></label><label>Vehicle<select name="vehicle"><option>Luxury SUV</option><option>Luxury Sedan</option><option>Party Bus</option><option>Executive Bus</option><option>Not sure yet</option></select></label></div>
+            <div class="form-row service-options is-hidden"><label>Service hours<input type="number" name="service-hours" min="1" max="24" step="1" value="4"></label><label>Vehicle quantity<input type="number" name="vehicle-count" min="1" max="20" step="1" value="1"></label></div>
             <label>Contact<input name="contact" placeholder="Phone or email" required></label>
             <div class="gratuity-group" aria-label="Optional gratuity">
               <span>Optional gratuity</span>
@@ -88,6 +89,7 @@
             <div class="estimate-card" aria-live="polite">
               <div><span>Route time</span><strong id="route-time">Enter pickup and drop-off</strong></div>
               <div><span>Billable time</span><strong id="billable-time">0 hours</strong></div>
+              <div><span>Vehicle plan</span><strong id="vehicle-plan">Select service</strong></div>
               <div><span>Ride price</span><strong id="ride-price">$0.00</strong></div>
               <div><span>Gratuity</span><strong id="tip-price">$0.00</strong></div>
               <div class="estimate-total"><span>Total due</span><strong id="total-price">$0.00</strong></div>
