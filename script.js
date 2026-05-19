@@ -25,6 +25,10 @@ let map;
 let directionsService;
 let directionsRenderer;
 let suggestionTimer;
+const selectedPlaces = {
+  pickup: null,
+  dropoff: null,
+};
 
 bookingForm?.addEventListener("submit", (event) => {
   event.preventDefault();
@@ -43,6 +47,7 @@ bookingForm?.addEventListener("input", (event) => {
   }
 
   if (event.target.name === "pickup" || event.target.name === "dropoff") {
+    selectedPlaces[event.target.name] = null;
     resetEstimate();
   }
 });
@@ -51,6 +56,11 @@ bookingForm?.addEventListener("change", (event) => {
   if (event.target.name === "gratuity") {
     pricingState.tipPercent = Number(event.target.value || 0);
     updateEstimate();
+    return;
+  }
+
+  if (event.target.name === "date" || event.target.name === "time") {
+    if (pricingState.hasRoute) calculateRoute();
   }
 });
 
@@ -227,10 +237,20 @@ window.initEmpireLimoMap = function initEmpireLimoMap() {
   const pickupInput = document.querySelector("#pickup-input");
   const dropoffInput = document.querySelector("#dropoff-input");
   if (google.maps.places) {
-    const pickupAutocomplete = new google.maps.places.Autocomplete(pickupInput, { fields: ["formatted_address", "geometry", "name"] });
-    const dropoffAutocomplete = new google.maps.places.Autocomplete(dropoffInput, { fields: ["formatted_address", "geometry", "name"] });
-    pickupAutocomplete.addListener("place_changed", calculateRoute);
-    dropoffAutocomplete.addListener("place_changed", calculateRoute);
+    const autocompleteOptions = {
+      componentRestrictions: { country: "us" },
+      fields: ["formatted_address", "geometry", "name", "place_id"],
+    };
+    const pickupAutocomplete = new google.maps.places.Autocomplete(pickupInput, autocompleteOptions);
+    const dropoffAutocomplete = new google.maps.places.Autocomplete(dropoffInput, autocompleteOptions);
+    pickupAutocomplete.addListener("place_changed", () => {
+      selectedPlaces.pickup = normalizeSelectedPlace(pickupAutocomplete.getPlace(), pickupInput);
+      calculateRoute();
+    });
+    dropoffAutocomplete.addListener("place_changed", () => {
+      selectedPlaces.dropoff = normalizeSelectedPlace(dropoffAutocomplete.getPlace(), dropoffInput);
+      calculateRoute();
+    });
   }
 
   [pickupInput, dropoffInput].forEach((input) => {
@@ -242,18 +262,21 @@ window.initEmpireLimoMap = function initEmpireLimoMap() {
 };
 
 function calculateRoute() {
-  const pickup = document.querySelector("#pickup-input")?.value.trim();
-  const dropoff = document.querySelector("#dropoff-input")?.value.trim();
+  const pickupInput = document.querySelector("#pickup-input");
+  const dropoffInput = document.querySelector("#dropoff-input");
+  const pickup = pickupInput?.value.trim();
+  const dropoff = dropoffInput?.value.trim();
   if (!directionsService || !pickup || !dropoff) return;
 
   setMapStatus("Calculating route...");
   directionsService.route(
     {
-      origin: pickup,
-      destination: dropoff,
+      origin: getRouteEndpoint("pickup", pickup),
+      destination: getRouteEndpoint("dropoff", dropoff),
       travelMode: google.maps.TravelMode.DRIVING,
+      unitSystem: google.maps.UnitSystem.IMPERIAL,
       drivingOptions: {
-        departureTime: new Date(),
+        departureTime: getRequestedDepartureTime(),
         trafficModel: google.maps.TrafficModel.BEST_GUESS,
       },
     },
@@ -271,6 +294,38 @@ function calculateRoute() {
       updateEstimate();
     }
   );
+}
+
+function normalizeSelectedPlace(place, input) {
+  if (!place?.place_id) return null;
+  const label = place.formatted_address || place.name || input.value.trim();
+  if (label) input.value = label;
+  return {
+    inputValue: input.value.trim(),
+    placeId: place.place_id,
+    location: place.geometry?.location || null,
+  };
+}
+
+function getRouteEndpoint(type, typedValue) {
+  const place = selectedPlaces[type];
+  if (place?.inputValue === typedValue) {
+    if (place.placeId) return { placeId: place.placeId };
+    if (place.location) return place.location;
+  }
+  return typedValue;
+}
+
+function getRequestedDepartureTime() {
+  const formData = new FormData(bookingForm);
+  const date = formData.get("date");
+  const time = formData.get("time");
+  const now = new Date();
+  if (!date || !time) return now;
+
+  const requested = new Date(date + "T" + time);
+  if (Number.isNaN(requested.getTime()) || requested < now) return now;
+  return requested;
 }
 
 function setMapStatus(message) {
