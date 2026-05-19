@@ -8,6 +8,7 @@ const pricingState = {
   durationMinutes: null,
   distanceText: "",
   tipPercent: 0,
+  hasRoute: false,
 };
 
 const estimateNodes = {
@@ -38,6 +39,11 @@ bookingForm?.addEventListener("input", (event) => {
   if (event.target.name === "gratuity") {
     pricingState.tipPercent = Number(event.target.value || 0);
     updateEstimate();
+    return;
+  }
+
+  if (event.target.name === "pickup" || event.target.name === "dropoff") {
+    resetEstimate();
   }
 });
 
@@ -107,7 +113,10 @@ function buildBookingMailto(request) {
 function calculateEstimate() {
   const hourlyRate = Number(config.hourlyRate || 150);
   const minimumHours = Number(config.minimumHours || 1);
-  const minutes = pricingState.durationMinutes || minimumHours * 60;
+  if (!pricingState.hasRoute || !pricingState.durationMinutes) {
+    return { billableHours: 0, ridePrice: 0, tipAmount: 0, totalDue: 0 };
+  }
+  const minutes = pricingState.durationMinutes;
   const billableHours = Math.max(minimumHours, Math.ceil(minutes / 60));
   const ridePrice = billableHours * hourlyRate;
   const tipAmount = Math.round(ridePrice * pricingState.tipPercent) / 100;
@@ -140,6 +149,14 @@ function formatDuration(minutes, distanceText) {
   if (hours) parts.push(hours + "h");
   parts.push(mins + "m");
   return parts.join(" ") + (distanceText ? " / " + distanceText : "");
+}
+
+function resetEstimate() {
+  pricingState.durationMinutes = null;
+  pricingState.distanceText = "";
+  pricingState.hasRoute = false;
+  updateEstimate();
+  setMapStatus("Enter pickup and drop-off to calculate traffic-aware time and distance.");
 }
 
 function openPayment(url, fallbackMessage) {
@@ -210,8 +227,10 @@ window.initEmpireLimoMap = function initEmpireLimoMap() {
   const pickupInput = document.querySelector("#pickup-input");
   const dropoffInput = document.querySelector("#dropoff-input");
   if (google.maps.places) {
-    new google.maps.places.Autocomplete(pickupInput, { fields: ["formatted_address", "geometry", "name"] });
-    new google.maps.places.Autocomplete(dropoffInput, { fields: ["formatted_address", "geometry", "name"] });
+    const pickupAutocomplete = new google.maps.places.Autocomplete(pickupInput, { fields: ["formatted_address", "geometry", "name"] });
+    const dropoffAutocomplete = new google.maps.places.Autocomplete(dropoffInput, { fields: ["formatted_address", "geometry", "name"] });
+    pickupAutocomplete.addListener("place_changed", calculateRoute);
+    dropoffAutocomplete.addListener("place_changed", calculateRoute);
   }
 
   [pickupInput, dropoffInput].forEach((input) => {
@@ -247,7 +266,8 @@ function calculateRoute() {
       directionsRenderer.setDirections(result);
       pricingState.durationMinutes = Math.ceil((leg.duration_in_traffic?.value || leg.duration.value) / 60);
       pricingState.distanceText = leg.distance?.text || "";
-      setMapStatus("Route calculated. Final availability is confirmed by dispatch.");
+      pricingState.hasRoute = true;
+      setMapStatus(leg.duration_in_traffic ? "Traffic-aware Google route calculated. Final availability is confirmed by dispatch." : "Google route calculated. Final availability is confirmed by dispatch.");
       updateEstimate();
     }
   );
