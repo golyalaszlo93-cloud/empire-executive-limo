@@ -5,8 +5,8 @@ window.EMPIRE_LIMO_CONFIG = {
   email: "bookings@empireexecutivelimo.com",
   website: "https://empireexecutivelimo.com",
   depositAmount: "150.00",
-  // Add live provider URLs after creating them in Stripe/PayPal/Square.
-  stripeCheckoutUrl: "",
+  // Stripe-hosted checkout for the reservation deposit.
+  stripeCheckoutUrl: "https://buy.stripe.com/fZu6oJ77NbWn9a12LZ5kk00",
   paypalCheckoutUrl: "",
   venmoCheckoutUrl: "",
   cashAppPayUrl: "",
