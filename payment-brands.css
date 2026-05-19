@@ -33,6 +33,20 @@
   font-weight: 800;
 }
 
+.apple-mark:before {
+  content: "Apple";
+  display: inline-block;
+  width: 27px;
+  overflow: hidden;
+  color: transparent;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+  font-size: 25px;
+  font-weight: 700;
+  line-height: 1;
+  text-shadow: 0 0 0 #fff;
+  transform: translateY(-1px);
+}
+
 .brand-card {
   gap: 10px;
 }
