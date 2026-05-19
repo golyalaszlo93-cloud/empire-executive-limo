@@ -17,6 +17,22 @@
   border-color: rgba(240, 202, 120, .7);
 }
 
+.apple-pay-official,
+.brand-apple-pay {
+  -webkit-appearance: -apple-pay-button;
+  appearance: -apple-pay-button;
+  -apple-pay-button-type: pay;
+  -apple-pay-button-style: black;
+  min-height: 52px;
+  background: #050505;
+}
+
+.brand-apple-pay {
+  width: 100%;
+  height: 92px;
+  border-radius: 8px;
+}
+
 .brand-card {
   gap: 10px;
 }
@@ -40,17 +56,6 @@
 .card-stack i + i {
   transform: translate(9px, 8px);
   background: linear-gradient(135deg, #f8fafc, #94a3b8);
-}
-
-.brand-apple {
-  background: #050505;
-  color: #fff;
-  font-size: 24px;
-  letter-spacing: 0;
-}
-
-.brand-apple strong {
-  font-weight: 800;
 }
 
 .brand-klarna {
@@ -83,23 +88,23 @@
   font-weight: 900;
 }
 
-.brand-amazon {
+.brand-amazon-text {
   background: #fff;
   color: #111827;
   gap: 3px;
 }
 
-.brand-amazon span {
+.brand-amazon-text span {
   font-size: 24px;
   font-weight: 800;
 }
 
-.brand-amazon strong {
+.brand-amazon-text strong {
   position: relative;
   font-size: 20px;
 }
 
-.brand-amazon strong:after {
+.brand-amazon-text strong:after {
   content: "";
   position: absolute;
   left: -8px;
