@@ -68,8 +68,8 @@
       <section class="booking-section" id="booking">
         <div class="booking-copy">
           <p class="eyebrow">Reserve</p><h2>Request a quote in under one minute.</h2>
-          <p>Enter the trip details to estimate the route, billable time, and checkout amount before dispatch confirms the ride.</p>
-          <ul><li>$150 minimum for the first hour</li><li>Every started hour after that adds $150</li><li>Optional gratuity: 18%, 20%, or 22%</li></ul>
+          <p>Enter the route details to calculate time, distance, traffic-aware pricing, and optional gratuity before checkout.</p>
+          <div class="rate-note"><strong>$150/hour</strong><span>1 hour minimum. Every started hour is billed as a full hour.</span></div>
         </div>
         <div class="booking-panel">
           <form class="booking-form" aria-label="Ride quote request">
@@ -92,7 +92,7 @@
               <div><span>Gratuity</span><strong id="tip-price">$0.00</strong></div>
               <div class="estimate-total"><span>Total due</span><strong id="total-price">$150.00</strong></div>
             </div>
-            <button class="button primary full" type="submit">Request ride and payment link</button><p class="form-note">Route pricing is $150 minimum for the first hour. Every started hour is billed as an additional $150.</p>
+            <button class="button primary full" type="submit">Request ride confirmation</button><p class="form-note">Route time uses traffic when Google Maps is active. Full website checkout requires dynamic Stripe checkout to be deployed.</p>
           </form>
           <div class="route-map-wrap">
             <div id="route-map" class="route-map" role="img" aria-label="Route map"><span>Google Maps route preview will appear here.</span></div>
@@ -104,10 +104,10 @@
         <div class="section-heading"><p class="eyebrow">Payment options</p><h2>Built for modern checkout.</h2></div>
         <div class="payment-layout">
           <div class="payment-card">
-            <div class="payment-total"><span>Reservation deposit</span><strong>$150.00</strong></div>
-            <button class="wallet-button brand-apple-text" id="apple-pay-button" type="button" aria-label="Pay deposit with Apple Pay"><span>Apple</span><strong>Pay</strong></button>
+            <div class="payment-total"><span>Calculated ride total</span><strong id="payment-total-label">$150.00+</strong></div>
+            <button class="wallet-button brand-apple-text" id="apple-pay-button" type="button" aria-label="Pay calculated ride total with Apple Pay"><span>Apple</span><strong>Pay</strong></button>
             <div class="divider"><span>or pay another way</span></div>
-            <div class="card-fields"><p class="payment-note">Card and Apple Pay deposits are handled securely by Stripe. No card data is stored on this website.</p><button class="button primary full" id="card-pay-button" type="button">Pay deposit by card</button></div>
+            <div class="card-fields"><p class="payment-note">All ride payments are handled securely by Stripe. No card data is stored on this website.</p><button class="button primary full" id="card-pay-button" type="button">Pay calculated ride total</button></div>
           </div>
           <div class="payment-options brand-grid" aria-label="Stripe payment methods">
             <a class="payment-brand brand-card" href="#" data-pay="stripe"><span class="card-stack"><i></i><i></i></span><span>Card</span></a>
@@ -116,7 +116,7 @@
             <a class="payment-brand brand-link" href="#" data-pay="stripe"><strong>Link</strong></a>
             <a class="payment-brand brand-cashapp" href="#" data-pay="stripe"><span class="cash-mark">$</span><strong>Cash App Pay</strong></a>
             <a class="payment-brand brand-amazon-text" href="#" data-pay="stripe"><span>Amazon</span><strong>Pay</strong></a>
-            <p>Reservation deposits are processed by Stripe. Available checkout methods include card, Apple Pay, Klarna, Link, Cash App Pay, and Amazon Pay when eligible.</p>
+            <p>Full ride payments are processed by Stripe after route time, billable hours, and optional gratuity are calculated.</p>
           </div>
         </div>
       </section>

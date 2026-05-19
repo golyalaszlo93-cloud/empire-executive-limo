@@ -16,6 +16,7 @@ const estimateNodes = {
   ridePrice: document.querySelector("#ride-price"),
   tipPrice: document.querySelector("#tip-price"),
   totalPrice: document.querySelector("#total-price"),
+  paymentTotalLabel: document.querySelector("#payment-total-label"),
   mapStatus: document.querySelector("#map-status"),
 };
 
@@ -125,6 +126,7 @@ function updateEstimate() {
   if (estimateNodes.ridePrice) estimateNodes.ridePrice.textContent = formatCurrency(estimate.ridePrice);
   if (estimateNodes.tipPrice) estimateNodes.tipPrice.textContent = formatCurrency(estimate.tipAmount);
   if (estimateNodes.totalPrice) estimateNodes.totalPrice.textContent = formatCurrency(estimate.totalDue);
+  if (estimateNodes.paymentTotalLabel) estimateNodes.paymentTotalLabel.textContent = formatCurrency(estimate.totalDue);
 }
 
 function formatCurrency(value) {
@@ -149,12 +151,12 @@ function openPayment(url, fallbackMessage) {
 }
 
 function currentCheckoutUrl() {
-  return config.dynamicCheckoutUrl || config.stripeCheckoutUrl;
+  return config.dynamicCheckoutUrl || "";
 }
 
 async function openCheckout() {
   if (!config.checkoutApiUrl) {
-    openPayment(currentCheckoutUrl(), "Dynamic checkout is not connected yet.");
+    alert("Full ride checkout is not live yet. Dispatch can confirm the calculated total and send the secure payment link.");
     return;
   }
 

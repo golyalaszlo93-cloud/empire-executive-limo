@@ -101,6 +101,26 @@
   font-size: 13px;
 }
 
+.rate-note {
+  display: inline-grid;
+  gap: 4px;
+  max-width: 360px;
+  margin: 4px 0 18px;
+  padding: 10px 12px;
+  border-left: 3px solid #7d5a19;
+  background: rgba(255, 255, 255, .35);
+}
+
+.rate-note strong {
+  color: #151515;
+  font-size: 15px;
+}
+
+.rate-note span {
+  color: #4b4a46;
+  font-size: 13px;
+}
+
 @media (max-width: 900px) {
   .gratuity-group {
     grid-template-columns: 1fr 1fr;
