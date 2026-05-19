@@ -22,6 +22,7 @@ const estimateNodes = {
 let map;
 let directionsService;
 let directionsRenderer;
+let suggestionTimer;
 
 bookingForm?.addEventListener("submit", (event) => {
   event.preventDefault();
@@ -257,7 +258,7 @@ function setMapStatus(message) {
 function loadGoogleMaps() {
   const key = config.googleMapsApiKey;
   if (!key) {
-    setMapStatus("Google Maps API key needed to activate live route calculation.");
+    initFallbackRouteTools();
     return;
   }
   const script = document.createElement("script");
@@ -270,3 +271,116 @@ function loadGoogleMaps() {
 updateEstimate();
 configurePaymentButtons();
 loadGoogleMaps();
+
+function initFallbackRouteTools() {
+  const pickupInput = document.querySelector("#pickup-input");
+  const dropoffInput = document.querySelector("#dropoff-input");
+  const pickupList = document.querySelector("#pickup-suggestions");
+  const dropoffList = document.querySelector("#dropoff-suggestions");
+
+  [pickupInput, dropoffInput].forEach((input) => {
+    input?.addEventListener("input", () => {
+      const list = input === pickupInput ? pickupList : dropoffList;
+      queueAddressSuggestions(input.value, list);
+    });
+    input?.addEventListener("change", calculateFallbackRoute);
+    input?.addEventListener("blur", calculateFallbackRoute);
+  });
+
+  setMapStatus("Enter pickup and drop-off to preview the route and calculate the estimated time.");
+}
+
+function queueAddressSuggestions(query, list) {
+  window.clearTimeout(suggestionTimer);
+  if (!query || query.trim().length < 4 || !list) return;
+  suggestionTimer = window.setTimeout(() => {
+    fetchAddressSuggestions(query, list);
+  }, 350);
+}
+
+async function fetchAddressSuggestions(query, list) {
+  const url = "https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&countrycodes=us&q=" + encodeURIComponent(query);
+  try {
+    const response = await fetch(url, { headers: { Accept: "application/json" } });
+    if (!response.ok) return;
+    const results = await response.json();
+    list.innerHTML = "";
+    results.forEach((place) => {
+      const option = document.createElement("option");
+      option.value = place.display_name;
+      option.dataset.lat = place.lat;
+      option.dataset.lon = place.lon;
+      list.appendChild(option);
+    });
+  } catch {
+    // Suggestions are progressive enhancement only.
+  }
+}
+
+async function calculateFallbackRoute() {
+  const pickupInput = document.querySelector("#pickup-input");
+  const dropoffInput = document.querySelector("#dropoff-input");
+  const pickup = pickupInput?.value.trim();
+  const dropoff = dropoffInput?.value.trim();
+  if (!pickup || !dropoff) return;
+
+  setMapStatus("Calculating route...");
+  showGoogleDirectionsEmbed(pickup, dropoff);
+
+  try {
+    const [origin, destination] = await Promise.all([
+      geocodeAddress(pickup),
+      geocodeAddress(dropoff),
+    ]);
+    if (!origin || !destination) {
+      setMapStatus("Could not find one of the addresses. Try a fuller address.");
+      return;
+    }
+
+    const route = await fetchOsrmRoute(origin, destination);
+    if (!route) {
+      setMapStatus("Route could not be calculated. Try a more specific pickup and drop-off.");
+      return;
+    }
+
+    pricingState.durationMinutes = Math.ceil(route.duration / 60);
+    pricingState.distanceText = metersToMiles(route.distance);
+    setMapStatus("Route calculated. Google map preview is shown; final availability is confirmed by dispatch.");
+    updateEstimate();
+  } catch {
+    setMapStatus("Route calculation is temporarily unavailable. Dispatch can confirm the price.");
+  }
+}
+
+async function geocodeAddress(address) {
+  const url = "https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=us&q=" + encodeURIComponent(address);
+  const response = await fetch(url, { headers: { Accept: "application/json" } });
+  if (!response.ok) return null;
+  const results = await response.json();
+  if (!results[0]) return null;
+  return {
+    lat: Number(results[0].lat),
+    lon: Number(results[0].lon),
+  };
+}
+
+async function fetchOsrmRoute(origin, destination) {
+  const coords = origin.lon + "," + origin.lat + ";" + destination.lon + "," + destination.lat;
+  const url = "https://router.project-osrm.org/route/v1/driving/" + coords + "?overview=false";
+  const response = await fetch(url, { headers: { Accept: "application/json" } });
+  if (!response.ok) return null;
+  const data = await response.json();
+  return data.routes?.[0] || null;
+}
+
+function showGoogleDirectionsEmbed(pickup, dropoff) {
+  const mapElement = document.querySelector("#route-map");
+  if (!mapElement) return;
+  const src = "https://www.google.com/maps?output=embed&saddr=" + encodeURIComponent(pickup) + "&daddr=" + encodeURIComponent(dropoff);
+  mapElement.innerHTML = '<iframe title="Google Maps route preview" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="' + src + '"></iframe>';
+}
+
+function metersToMiles(meters) {
+  const miles = meters / 1609.344;
+  return miles.toFixed(miles >= 10 ? 0 : 1) + " mi";
+}
