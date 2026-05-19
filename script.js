@@ -40,11 +40,7 @@ const selectedPlaces = {
 
 bookingForm?.addEventListener("submit", (event) => {
   event.preventDefault();
-  const request = buildBookingRequest();
-  saveBookingRequest(request);
-  bookingForm.querySelector(".form-note").textContent =
-    "Ride request ready. Your email app will open so dispatch can confirm availability and complete payment.";
-  window.location.href = buildBookingMailto(request);
+  openCheckout();
 });
 
 bookingForm?.addEventListener("input", (event) => {
@@ -306,7 +302,7 @@ function handlePaymentReturn() {
   if (!status || !note) return;
 
   if (status === "success") {
-    note.textContent = "Payment received. Your ride request is logged and dispatch will confirm the final details shortly.";
+    note.textContent = "Payment received. Your ride request is logged. Dispatch will confirm vehicle availability and final ride details shortly.";
   }
 
   if (status === "cancelled") {

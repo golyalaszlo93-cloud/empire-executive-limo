@@ -67,9 +67,9 @@
       </section>
       <section class="booking-section" id="booking">
         <div class="booking-copy">
-          <p class="eyebrow">Reserve</p><h2>Request a quote in under one minute.</h2>
-          <p>Enter the route details to calculate time, distance, traffic-aware pricing, and optional gratuity before checkout.</p>
-          <div class="rate-note"><strong>Route-based checkout</strong><span>Enter pickup and drop-off to calculate the ride total.</span></div>
+          <p class="eyebrow">Reserve</p><h2>Pay and reserve your ride in one flow.</h2>
+          <p>Enter the trip details, review the traffic-aware total, then pay securely to reserve. Dispatch confirms final vehicle availability shortly after payment.</p>
+          <div class="rate-note"><strong>Full ride checkout</strong><span>Point-to-point pricing includes driver travel from the Hollywood base to pickup.</span></div>
         </div>
         <div class="booking-panel">
           <form class="booking-form" aria-label="Ride quote request">
@@ -94,7 +94,7 @@
               <div><span>Gratuity</span><strong id="tip-price">$0.00</strong></div>
               <div class="estimate-total"><span>Total due</span><strong id="total-price">$0.00</strong></div>
             </div>
-            <button class="button primary full" type="submit">Request ride confirmation</button><p class="form-note">Route time uses traffic when Google Maps is active. Full website checkout requires dynamic Stripe checkout to be deployed.</p>
+            <button class="button primary full" type="submit">Pay & Reserve Ride</button><p class="form-note">Payment reserves the ride request. Dispatch will confirm vehicle availability and final details shortly after checkout.</p>
           </form>
           <div class="route-map-wrap">
             <div id="route-map" class="route-map" role="img" aria-label="Route map"><span>Google Maps route preview will appear here.</span></div>
@@ -109,7 +109,7 @@
             <div class="payment-total"><span>Calculated ride total</span><strong id="payment-total-label">$0.00</strong></div>
             <button class="wallet-button brand-apple-text" id="apple-pay-button" type="button" aria-label="Pay calculated ride total with Apple Pay"><span>Apple</span><strong>Pay</strong></button>
             <div class="divider"><span>or pay another way</span></div>
-            <div class="card-fields"><p class="payment-note">All ride payments are handled securely by Stripe. No card data is stored on this website.</p><button class="button primary full" id="card-pay-button" type="button">Pay calculated ride total</button></div>
+            <div class="card-fields"><p class="payment-note">All ride payments are handled securely by Stripe. No card data is stored on this website.</p><button class="button primary full" id="card-pay-button" type="button">Pay & Reserve Ride</button></div>
           </div>
           <div class="payment-options brand-grid" aria-label="Stripe payment methods">
             <a class="payment-brand brand-card" href="#" data-pay="stripe"><span class="card-stack"><i></i><i></i></span><span>Card</span></a>
@@ -120,6 +120,17 @@
             <a class="payment-brand brand-amazon-text" href="#" data-pay="stripe"><span>Amazon</span><strong>Pay</strong></a>
             <p>Full ride payments are processed by Stripe after route time, billable hours, and optional gratuity are calculated.</p>
           </div>
+        </div>
+      </section>
+      <section class="section policies" id="policies">
+        <div class="section-heading"><p class="eyebrow">Ride terms</p><h2>Clear policies before checkout.</h2></div>
+        <div class="intro-grid policy-grid">
+          <article><span>01</span><h3>Cancellation</h3><p>Standard rides may be cancelled up to 24 hours before pickup. Late cancellations and no-shows may be non-refundable because the vehicle and chauffeur are reserved.</p></article>
+          <article><span>02</span><h3>Wait time</h3><p>Airport pickups include reasonable arrival-time coordination. Extra waiting, added stops, or route changes may add billable time after dispatch confirmation.</p></article>
+          <article><span>03</span><h3>Overtime</h3><p>Hourly service is billed at $150 per started hour per vehicle. Time beyond the reserved window is charged in started-hour increments when available.</p></article>
+          <article><span>04</span><h3>Vehicle fit</h3><p>Luxury sedans carry up to 3 passengers, luxury SUVs up to 6, and party or executive buses up to 12. Larger groups require enough vehicles for the passenger count.</p></article>
+          <article><span>05</span><h3>Payment</h3><p>All rides are paid through secure Stripe checkout. Payment confirms the request; dispatch follows up to confirm vehicle availability and exact operational details.</p></article>
+          <article><span>06</span><h3>Refunds</h3><p>Approved refunds return to the original payment method. Processing timing depends on Stripe and the customer bank or card issuer.</p></article>
         </div>
       </section>
     </main>
